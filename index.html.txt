@@ -1,0 +1,16 @@
+# Create and go to your project folder
+mkdir roommate-app
+cd roommate-app
+
+# Create the main HTML file — copy your ENTIRE prototype code into this file
+# (I'll show you how in a moment)
+
+# Initialize git
+git init
+git add .
+git commit -m "Initial prototype"
+
+# Connect to your GitHub repo (replace YOUR_USERNAME)
+git remote add origin https://github.com/YOUR_USERNAME/roommate-app.git
+git branch -M main
+git push -u origin maincd %USERPROFILE%\Desktop\RooMate cd

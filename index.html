@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RooMate — Dosti se shuruaat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- ================= AUTH (LOGIN / SIGNUP) ================= -->
+<section id="screen-signup" class="screen active">
+  <div class="brand">
+    <h1>RooMate <span class="accent">🤝</span></h1>
+    <p class="tagline">Dosti se shuruaat. Zindagi tak saath.</p>
+  </div>
+  <div class="card form-card">
+    <div class="auth-tabs">
+      <button id="tabLogin" class="auth-tab">Log in</button>
+      <button id="tabSignup" class="auth-tab active">Sign up</button>
+    </div>
+
+    <div id="signupFields" class="form-card" style="padding:0;box-shadow:none;margin:0">
+      <input type="text" id="name" placeholder="Your name" autocomplete="name">
+      <input type="number" id="age" placeholder="Your age (18+)" min="18" max="99">
+      <input type="text" id="city" placeholder="Your city (e.g. Guwahati)">
+      <select id="gender">
+        <option value="">I am…</option>
+        <option value="M">Man</option>
+        <option value="F">Woman</option>
+      </select>
+      <select id="lookingFor">
+        <option value="">Looking for…</option>
+        <option>Friendship first</option>
+        <option>Serious relationship</option>
+        <option>RooMate</option>
+        <option>Marriage-minded</option>
+      </select>
+    </div>
+
+    <input type="email" id="email" placeholder="Email" autocomplete="email">
+    <input type="password" id="password" placeholder="Password (min 6 characters)">
+    <button id="authBtn" class="btn-primary">Sign up</button>
+    <p id="signupError" class="error-msg"></p>
+  </div>
+</section>
+
+<!-- ================= BROWSE ================= -->
+<section id="screen-browse" class="screen">
+  <header class="topbar">
+    <h1 class="logo-small">RooMate <span class="accent">🤝</span></h1>
+    <div class="topbar-right">
+      <span id="planBadge" class="plan-badge">Free</span>
+      <button id="filterBtn" class="btn-icon" aria-label="Filters">⚙</button>
+    </div>
+  </header>
+  <p id="travelBanner" class="travel-banner hidden"></p>
+
+  <div id="cardStack" class="card-stack"><p class="loading-note">Loading profiles…</p></div>
+
+  <div class="action-row">
+    <button id="passBtn" class="btn-circle pass" aria-label="Pass">✕</button>
+    <button id="superBtn" class="btn-circle super" aria-label="SuperSwipe">⭐</button>
+    <button id="likeBtn" class="btn-circle like" aria-label="Connect">🤝</button>
+  </div>
+</section>
+
+<!-- ================= FILTERS ================= -->
+<section id="screen-filters" class="screen">
+  <header class="topbar">
+    <button class="btn-back go-browse" aria-label="Back">←</button>
+    <h1 class="logo-small">Filters</h1>
+  </header>
+  <div class="card form-card">
+    <label class="field-label">Show me</label>
+    <select id="fltGender">
+      <option value="All">Everyone</option>
+      <option value="F">Women</option>
+      <option value="M">Men</option>
+    </select>
+    <label class="field-label">Age range: <span id="ageLabel">18 – 40</span></label>
+    <div class="range-row">
+      <input type="number" id="fltAgeMin" min="18" max="70" value="18">
+      <span>to</span>
+      <input type="number" id="fltAgeMax" min="18" max="70" value="40">
+    </div>
+    <button id="applyFilters" class="btn-primary">Apply filters</button>
+  </div>
+</section>
+
+<!-- ================= MATCHES ================= -->
+<section id="screen-matches" class="screen">
+  <header class="topbar"><h1 class="logo-small">Your connects</h1></header>
+  <div id="matchList" class="match-list">
+    <p class="empty-note">Loading…</p>
+  </div>
+</section>
+
+<!-- ================= EVENTS ================= -->
+<section id="screen-events" class="screen">
+  <header class="topbar"><h1 class="logo-small">Plans near you</h1></header>
+  <p class="section-note">Group meetups & local events — meet safely, in public, in groups.</p>
+  <div id="eventList" class="match-list"></div>
+</section>
+
+<!-- ================= PROFILE / SETTINGS ================= -->
+<section id="screen-profile" class="screen">
+  <header class="topbar"><h1 class="logo-small">You</h1></header>
+  <div class="card form-card" style="align-items:center;text-align:center">
+    <div id="myAvatar" class="my-avatar">🙂</div>
+    <input type="file" id="photoInput" accept="image/*" hidden>
+    <button id="uploadPhotoBtn" class="btn-primary" style="width:100%">📷 Add / change photo</button>
+    <p id="photoStatus" class="section-note center"></p>
+    <h2 id="meName">—</h2>
+    <p id="meMeta" class="job"></p>
+    <button id="premiumBtn" class="btn-primary" style="width:100%">✨ Get RooMate Premium — ₹99/month</button>
+    <p id="premiumNote" class="section-note center"></p>
+  </div>
+
+  <div class="card form-card">
+    <h2>Modes</h2>
+    <label class="toggle-row"><span>🕶 Incognito Mode<br><small>Hide your profile from boss, relatives, exes.</small></span>
+      <input type="checkbox" id="incognitoToggle"></label>
+    <label class="toggle-row"><span>😴 Snooze Mode<br><small>Pause matching without losing your connects.</small></span>
+      <input type="checkbox" id="snoozeToggle"></label>
+    <label class="field-label">✈️ Travel Mode — browse in another city</label>
+    <select id="travelSelect">
+      <option value="">My current location</option>
+      <option>Guwahati</option><option>Delhi</option><option>Mumbai</option>
+      <option>Bangalore</option><option>Kolkata</option><option>Shillong</option>
+    </select>
+  </div>
+
+  <div class="card form-card">
+    <h2>Safety & Support</h2>
+    <button class="list-btn" id="safetyTipsBtn">🛡 Safety tips</button>
+    <button class="list-btn" id="helpBtn">💬 Help & support</button>
+    <button class="list-btn" id="guidelinesBtn">📜 Community guidelines</button>
+    <button class="list-btn danger" id="logoutBtn">Log out</button>
+  </div>
+  <div style="height:80px"></div>
+</section>
+
+<!-- ================= CHAT ================= -->
+<section id="screen-chat" class="screen">
+  <header class="topbar chat-top">
+    <button id="backToMatches" class="btn-back" aria-label="Back">←</button>
+    <h1 id="chatWith" class="logo-small">Chat</h1>
+    <button id="videoBtn" class="btn-icon" aria-label="Video call">📹</button>
+    <button id="chatMenuBtn" class="btn-icon" aria-label="More">⋮</button>
+  </header>
+
+  <p id="firstMoveBanner" class="first-move hidden"></p>
+  <div id="chatWindow" class="chat-window"></div>
+
+  <div id="paywall" class="paywall hidden">
+    <p id="paywallText">Upgrade to keep chatting</p>
+    <button id="paywallBtn" class="btn-primary">✨ Get Premium — ₹99/month</button>
+  </div>
+
+  <div class="chat-input-row">
+    <input type="text" id="chatInput" placeholder="Type a message…">
+    <button id="sendBtn" class="btn-send" aria-label="Send">➤</button>
+  </div>
+  <p id="safetyWarn" class="error-msg center"></p>
+</section>
+
+<!-- ================= PROFILE DETAIL ================= -->
+<div id="detailOverlay" class="overlay hidden">
+  <div class="detail-sheet">
+    <button id="closeDetail" class="btn-close" aria-label="Close">✕</button>
+    <div id="detailPhoto" class="detail-photo">👤</div>
+    <div class="detail-body">
+      <h2 id="detailName">Name, 00</h2>
+      <p id="detailJob" class="job"></p>
+      <p id="detailDist" class="dist"></p>
+      <p id="detailBio" class="bio"></p>
+      <div class="info-grid">
+        <div class="info-box">🎓 <span id="detailEdu">—</span></div>
+        <div class="info-box">🛐 <span id="detailRel">—</span></div>
+        <div class="info-box">📏 <span id="detailHt">—</span></div>
+        <div class="info-box">🎯 <span id="detailIntent">—</span></div>
+      </div>
+      <div id="detailTags" class="tag-row"></div>
+      <button id="complimentBtn" class="btn-primary" style="margin-top:14px;width:100%">💬 Send a Compliment</button>
+      <p class="section-note center">Compliments help you stand out before matching</p>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MATCH ANIMATION ================= -->
+<div id="matchOverlay" class="overlay match-overlay hidden">
+  <div class="match-inner">
+    <p class="match-title">It's a Connect!</p>
+    <div class="match-avatars">
+      <div class="match-avatar" id="matchMe">😊</div>
+      <div class="match-heart">🤝</div>
+      <div class="match-avatar" id="matchThem">👤</div>
+    </div>
+    <p id="matchText" class="match-sub"></p>
+    <p id="matchRule" class="match-sub small"></p>
+    <button id="matchChatBtn" class="btn-primary">Open chat</button>
+    <button id="matchKeepBtn" class="btn-ghost">Keep browsing</button>
+  </div>
+</div>
+
+<!-- ================= VIDEO CALL (demo) ================= -->
+<div id="videoOverlay" class="overlay match-overlay hidden">
+  <div class="match-inner">
+    <div class="match-avatar big" id="videoAvatar">👤</div>
+    <p class="match-title small-title" id="videoName">Calling…</p>
+    <p class="match-sub">Video calling… 📹 (demo — real calls arrive with app launch)</p>
+    <button id="endCallBtn" class="btn-primary" style="background:#C62828;color:#fff">End call</button>
+  </div>
+</div>
+
+<!-- ================= INFO SHEET ================= -->
+<div id="infoOverlay" class="overlay hidden">
+  <div class="detail-sheet">
+    <button id="closeInfo" class="btn-close" aria-label="Close">✕</button>
+    <div class="detail-body" id="infoBody"></div>
+  </div>
+</div>
+
+<!-- ================= BOTTOM NAV ================= -->
+<nav id="bottomNav" class="bottom-nav hidden">
+  <button data-screen="screen-browse" class="nav-btn active">🤝<span>Browse</span></button>
+  <button data-screen="screen-matches" class="nav-btn">💬<span>Connects</span></button>
+  <button data-screen="screen-events" class="nav-btn">📅<span>Plans</span></button>
+  <button data-screen="screen-profile" class="nav-btn">👤<span>You</span></button>
+</nav>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -155,16 +155,46 @@ function refreshPlanBadge(){
   b.textContent = me && me.premium ? "✨ Premium" : "Free";
   b.classList.toggle("premium", !!(me && me.premium));
 }
+// ---------- Premium via Razorpay (TEST MODE) ----------
+const RAZORPAY_KEY_ID = "rzp_test_T8mJXWSlIfnBic";
+const PREMIUM_PRICE_PAISE = 9900; // ₹99.00
+
+async function activatePremium(paymentId){
+  const { error } = await db.from("profiles").update({ premium: true }).eq("id", me.id);
+  if (error){ alert("Payment received (" + paymentId + ") but activation failed — contact support with this ID."); return; }
+  me.premium = true;
+  refreshPlanBadge(); renderProfile();
+  if (activeChat) refreshChatGates();
+  alert("Payment successful ✔ Welcome to RooMate Premium ✨\nPayment ID: " + paymentId);
+}
+
 async function buyPremium(){
   if (me.premium) return alert("You already have RooMate Premium ✨");
-  if (confirm("Get RooMate Premium for ₹99/month? (demo payment — Razorpay comes next)\n\n✓ Unlimited messages\n✓ Unlimited SuperSwipes ⭐\n✓ Unlimited Compliments 💬\n✓ Incognito & Travel Mode")){
-    const { error } = await db.from("profiles").update({ premium: true }).eq("id", me.id);
-    if (error) return alert("Could not activate: " + error.message);
-    me.premium = true;
-    refreshPlanBadge(); renderProfile();
-    if (activeChat) refreshChatGates();
-    alert("Welcome to RooMate Premium ✨");
-  }
+  let email = "";
+  try {
+    const { data: { user } } = await db.auth.getUser();
+    email = user ? user.email : "";
+  } catch(e){}
+  const rzp = new Razorpay({
+    key: RAZORPAY_KEY_ID,
+    amount: PREMIUM_PRICE_PAISE,
+    currency: "INR",
+    name: "RooMate",
+    description: "RooMate Premium — 1 month",
+    prefill: { name: me.name, email: email },
+    notes: { user_id: me.id },
+    theme: { color: "#C2185B" },
+    handler: function(response){
+      activatePremium(response.razorpay_payment_id);
+    },
+    modal: {
+      ondismiss: function(){ /* user closed the payment popup */ }
+    }
+  });
+  rzp.on("payment.failed", function(response){
+    alert("Payment failed: " + (response.error && response.error.description ? response.error.description : "please try again."));
+  });
+  rzp.open();
 }
 $("premiumBtn").addEventListener("click", buyPremium);
 $("paywallBtn").addEventListener("click", buyPremium);

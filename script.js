@@ -155,47 +155,54 @@ function refreshPlanBadge(){
   b.textContent = me && me.premium ? "✨ Premium" : "Free";
   b.classList.toggle("premium", !!(me && me.premium));
 }
-// ---------- Premium via Razorpay (TEST MODE) ----------
-const RAZORPAY_KEY_ID = "rzp_test_T8mJXWSlIfnBic";
-const PREMIUM_PRICE_PAISE = 9900; // ₹99.00
-
-async function activatePremium(paymentId){
-  const { error } = await db.from("profiles").update({ premium: true }).eq("id", me.id);
-  if (error){ alert("Payment received (" + paymentId + ") but activation failed — contact support with this ID."); return; }
-  me.premium = true;
-  refreshPlanBadge(); renderProfile();
-  if (activeChat) refreshChatGates();
-  alert("Payment successful ✔ Welcome to RooMate Premium ✨\nPayment ID: " + paymentId);
-}
+// ---------- Premium via Cashfree (secure: server-side order + verification) ----------
+const CASHFREE_MODE = "sandbox";   // change to "production" after Cashfree approves
 
 async function buyPremium(){
-  if (me.premium) return alert("You already have RooMate Premium ✨");
-  let email = "";
+  if (me.premium) return alert("You already have RooMate Premium \u2728");
   try {
-    const { data: { user } } = await db.auth.getUser();
-    email = user ? user.email : "";
-  } catch(e){}
-  const rzp = new Razorpay({
-    key: RAZORPAY_KEY_ID,
-    amount: PREMIUM_PRICE_PAISE,
-    currency: "INR",
-    name: "RooMate",
-    description: "RooMate Premium — 1 month",
-    prefill: { name: me.name, email: email },
-    notes: { user_id: me.id },
-    theme: { color: "#C2185B" },
-    handler: function(response){
-      activatePremium(response.razorpay_payment_id);
-    },
-    modal: {
-      ondismiss: function(){ /* user closed the payment popup */ }
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) return alert("Please log in again.");
+
+    // 1) Ask our secure server function to create the order
+    const createRes = await db.functions.invoke("cashfree-payment", {
+      body: { action: "create_order" }
+    });
+    if (createRes.error || !createRes.data || createRes.data.error){
+      const msg = (createRes.data && createRes.data.error) || "Could not start payment. Please try again.";
+      return alert(msg);
     }
-  });
-  rzp.on("payment.failed", function(response){
-    alert("Payment failed: " + (response.error && response.error.description ? response.error.description : "please try again."));
-  });
-  rzp.open();
+    const { payment_session_id, order_id } = createRes.data;
+
+    // 2) Open the Cashfree checkout
+    const cashfree = Cashfree({ mode: CASHFREE_MODE });
+    const result = await cashfree.checkout({
+      paymentSessionId: payment_session_id,
+      redirectTarget: "_modal"
+    });
+
+    if (result && result.error){
+      return alert("Payment cancelled or failed: " + (result.error.message || "please try again."));
+    }
+
+    // 3) Verify with our server (never trust the browser)
+    const verifyRes = await db.functions.invoke("cashfree-payment", {
+      body: { action: "verify_payment", order_id: order_id }
+    });
+    const v = verifyRes.data || {};
+    if (v.paid && v.premium){
+      me.premium = true;
+      refreshPlanBadge(); renderProfile();
+      if (activeChat) refreshChatGates();
+      alert("Payment successful \u2714 Welcome to RooMate Premium \u2728\nOrder ID: " + order_id);
+    } else {
+      alert("Payment not confirmed yet (status: " + (v.status || "pending") + ").\nIf money was deducted, contact support with Order ID: " + order_id);
+    }
+  } catch (e) {
+    alert("Payment error \u2014 please check your internet and try again.");
+  }
 }
+
 $("premiumBtn").addEventListener("click", buyPremium);
 $("paywallBtn").addEventListener("click", buyPremium);
 
